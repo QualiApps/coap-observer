@@ -38,6 +38,7 @@ func GetAllClients() []byte {
 
 /**
  * Adds a new client
+ * @TODO - return item which has been created
  * @param io.Reader params - json
  * @return ([]byte, bool)
  */
