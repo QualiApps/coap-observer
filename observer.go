@@ -21,6 +21,24 @@ import (
 	"time"
 )
 
+type (
+	Response struct {
+		Data     []byte
+		FromAddr *net.UDPAddr
+	}
+	HostPort struct {
+		Net     string
+		Address string
+	}
+	Registered struct {
+		Id         string
+		RemoteAddr *net.UDPAddr
+		Req        []coap.Message
+	}
+)
+
+var reg_res []Registered
+
 func servHttp(confChan chan models.Config, reg chan models.Client, rm chan string) {
 	HttpHost := flag.String("host", "localhost", "Http server address")
 	HttpPort := flag.String("port", "4000", "Http server port")
@@ -32,18 +50,17 @@ func servHttp(confChan chan models.Config, reg chan models.Client, rm chan strin
 	router := httprouter.New()
 
 	register := func(c models.Client) {
-		fmt.Printf("REG")
 		reg <- c
 	}
 
 	delete := func(id string) {
-		fmt.Printf("RM")
 		rm <- id
 	}
 
 	// Init controller
 	controller := controllers.NewConfigController(*ConFile, register, delete)
 
+	// Init bootstrap
 	clients := models.GetAllClients()
 	var conf models.Config
 	json.Unmarshal(clients, &conf)
@@ -91,58 +108,41 @@ func Discover(device models.Client) (interface{}, error) {
 	return string([]byte(rv.Payload)), nil
 }
 
-type Registered struct {
-	Id         string
-	RemoteAddr *net.UDPAddr
-	Req        []coap.Message
-}
-
-func GetRegClientByKey(key string) *Registered {
-	for _, reg := range reg_res {
+func GetRegClientByKey(key string) (int, *Registered) {
+	for id, reg := range reg_res {
 		if reg.Id == key {
-			return &reg
+			return id, &reg
 		}
 	}
 
-	return nil
+	return 0, nil
 }
 
 func Deregister(l *net.UDPConn, addr *net.UDPAddr, req *coap.Message) {
-	fmt.Printf("\nDEREGISTER - Resource: %s\n", req.Option(coap.URIPath))
+	fmt.Printf("\nDEREGISTER - Resource: %s, Host: %s, Port: %s\n", req.Option(coap.URIPath), addr.IP, addr.Port)
 
+	req.SetOption(coap.Observe, 1)
 	err := coap.Transmit(l, addr, *req)
 	if err != nil {
 		log.Fatalf("DEREGISTER ERROR: %#v\n", err)
 	}
 }
 
-func DeregisterDevices(l *net.UDPConn /*regResources []Registered*/) {
-	/*	for _, res := range regResources {
-		//conn, found := ClientDict[res.Id]
-		//if found {
+func DeregisterDevices(l *net.UDPConn, regResources []Registered) {
+	for _, res := range regResources {
 		for _, r := range res.Req {
-			//fmt.Printf("\nDEREGISTER - Host: %s:%s, Res: %s\n", res.Host, res.Port, r.Option(coap.URIPath))
-			fmt.Printf("---%#v\n", r)
-			//r.SetOption(coap.Observe, 1)
-			//_, err := conn.Send(r)
-			//if err != nil {
-			//	fmt.Println(err)
-			//}
-			time.Sleep(time.Second)
+			Deregister(l, res.RemoteAddr, &r)
 		}
-		//}
-	}*/
+	}
 
 }
-
-var ClientDict map[string]*coap.Conn = make(map[string]*coap.Conn)
-var reg_res []Registered
 
 func ProcessResponse(l *net.UDPConn, response Response) {
 	rv := coap.Message{}
 	err := rv.UnmarshalBinary(response.Data)
 
 	if err == nil {
+		// Send ACK
 		if rv.IsConfirmable() {
 			m := coap.Message{
 				Type:      coap.Acknowledgement,
@@ -155,17 +155,10 @@ func ProcessResponse(l *net.UDPConn, response Response) {
 			}
 
 		}
-		log.Printf("Got %s", rv.Payload)
-		fmt.Printf("CON: %#v\n", rv.IsConfirmable())
-		fmt.Printf("TOKEN: %#v\n", rv.Token)
-		fmt.Printf("MID: %#v\n", rv.MessageID)
-		fmt.Printf("------------------------------------------------------------\n")
+		// Send to DB
+		fmt.Printf("------TO DB------------------------------------------------------\n")
 	}
 
-}
-
-func UpdateDevices(l *net.UDPConn, conf models.Config) {
-	return
 }
 
 func CheckReg(id string) bool {
@@ -183,27 +176,24 @@ func CheckReg(id string) bool {
 
 func Register(l *net.UDPConn, device models.Client) bool {
 	registered := false
-	fmt.Printf("Send REG - Host: %s, Port: %s\n", device.Host, device.Port)
 
 	conn := []string{device.Host, device.Port}
 	keyID := models.GenerateId(conn)
 
-	if CheckReg(keyID) {
-		registered = true
+	if _, ok := GetRegClientByKey(keyID); ok != nil {
+		return false
 	}
 
 	resources, err := Discover(device)
 	if err != nil {
-		log.Fatalf("Do not find device: %s\n", err)
+		log.Printf("Do not find device: %s\n", err)
 		return false
 	}
 	coreLinks := resources.(string)
 	if coreLinks == "" {
 		registered = false
 	}
-	endPoints := core.Parse(coreLinks)
-
-	if endPoints != nil {
+	if endPoints, ok := core.Parse(coreLinks); ok {
 		req := coap.Message{
 			Type: coap.NonConfirmable,
 			Code: coap.GET,
@@ -223,7 +213,7 @@ func Register(l *net.UDPConn, device models.Client) bool {
 
 				err := coap.Transmit(l, remoteAddr, req)
 				if err != nil {
-					log.Fatalf("Error sending request: %v", err)
+					log.Printf("Error sending request: %v", err)
 				}
 				RegDev.Req = append(RegDev.Req, req)
 			}
@@ -282,17 +272,6 @@ func UDPListener(listener chan *net.UDPConn, handler chan Response, conStr HostP
 
 }
 
-type (
-	Response struct {
-		Data     []byte
-		FromAddr *net.UDPAddr
-	}
-	HostPort struct {
-		Net     string
-		Address string
-	}
-)
-
 func main() {
 	var (
 		conf       = make(chan models.Config)
@@ -303,7 +282,7 @@ func main() {
 		exit       = make(chan os.Signal, 1)
 	)
 
-	connString := HostPort{"udp", ":10001"}
+	connString := HostPort{"udp", ":"}
 	signal.Notify(exit, os.Interrupt)
 	signal.Notify(exit, syscall.SIGTERM)
 
@@ -318,17 +297,18 @@ func main() {
 		case device := <-register:
 			Register(l, device)
 		case keyID := <-deregister:
-			client := GetRegClientByKey(keyID)
+			id, client := GetRegClientByKey(keyID)
 			if client != nil {
 				for _, req := range client.Req {
 					Deregister(l, client.RemoteAddr, &req)
 				}
+				reg_res = append(reg_res[:id], reg_res[id+1:]...)
 			}
 		case response := <-handler:
 			go ProcessResponse(l, response)
 		case <-exit:
 			go func() {
-				DeregisterDevices(l)
+				DeregisterDevices(l, reg_res)
 				os.Exit(0)
 			}()
 

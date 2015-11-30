@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log"
 
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -37,22 +36,32 @@ var Db = DbConf{"clients.db"}
  * @return - returns bytes array
  */
 func GetAllClients() []byte {
-	fmt.Println(Db.Name)
 	file, _ := ioutil.ReadFile(Db.Name)
 	return []byte(file)
 }
 
+func GetClientById(id string) []byte {
+	return []byte("")
+}
+
 /**
  * Adds a new client
- * @TODO - return item which has been created
  * @param io.Reader params - json
  * @return ([]byte, bool)
  */
 func AddClient(params io.Reader) ([]byte, bool) {
-	client := Client{}
+	var (
+		err    error
+		client = Client{}
+		cl     []byte
+	)
 
 	// Populate params
-	json.NewDecoder(params).Decode(&client)
+	err = json.NewDecoder(params).Decode(&client)
+	if err != nil {
+		log.Printf("Json Decode error: %#v\n", err)
+		return nil, false
+	}
 
 	// Add an Id
 	id := GenerateId([]string{client.Host, client.Port})
@@ -67,17 +76,23 @@ func AddClient(params io.Reader) ([]byte, bool) {
 	}
 	clients[id] = client
 
-	cl, err := json.Marshal(&clients)
+	cl, err = json.Marshal(&clients)
 	if err != nil {
-		log.Printf("Json Marshal error:", err)
+		log.Printf("Json Marshal error: %#v\n", err)
 		return nil, false
 	}
 
+	var ac []byte
 	if writeConf(cl) {
-		fmt.Printf("CLIENT: %#v\n", client)
+		ac, err = json.Marshal(client)
+		if err != nil {
+			log.Printf("Json Marshal error: %#v\n", err)
+			return nil, false
+		}
+
 	}
 
-	return cl, true
+	return ac, true
 }
 
 /**

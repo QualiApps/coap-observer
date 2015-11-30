@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -64,9 +63,11 @@ func parseAttributes(res *resource, attribs []string) {
 	}
 }
 
-func Parse(links string) []*resource {
-	var resources []*resource
-	fmt.Println("PARSE!")
+func Parse(links string) ([]*resource, bool) {
+	var (
+		resources []*resource
+		ok        = false
+	)
 
 	items := strings.Split(links, ",")
 	for _, part := range items {
@@ -81,8 +82,10 @@ func Parse(links string) []*resource {
 		}
 
 		resources = append(resources, res)
-
+	}
+	if len(resources) != 0 {
+		ok = true
 	}
 
-	return resources
+	return resources, ok
 }
