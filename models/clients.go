@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -25,14 +26,19 @@ type (
 /**
  * Path to conf file
  */
-var DbFile string
+type DbConf struct {
+	Name string `default:"clients.db"`
+}
+
+var Db = DbConf{"clients.db"}
 
 /**
  * Retrieves all clients
  * @return - returns bytes array
  */
 func GetAllClients() []byte {
-	file, _ := ioutil.ReadFile(DbFile)
+	fmt.Println(Db.Name)
+	file, _ := ioutil.ReadFile(Db.Name)
 	return []byte(file)
 }
 
@@ -49,7 +55,7 @@ func AddClient(params io.Reader) ([]byte, bool) {
 	json.NewDecoder(params).Decode(&client)
 
 	// Add an Id
-	id := generateId([]string{client.Host, client.Port})
+	id := GenerateId([]string{client.Host, client.Port})
 
 	clients, added := checkClient(id)
 	if added {
@@ -66,7 +72,10 @@ func AddClient(params io.Reader) ([]byte, bool) {
 		log.Printf("Json Marshal error:", err)
 		return nil, false
 	}
-	writeConf(cl)
+
+	if writeConf(cl) {
+		fmt.Printf("CLIENT: %#v\n", client)
+	}
 
 	return cl, true
 }
@@ -86,8 +95,9 @@ func DeleteClient(id string) bool {
 			return false
 		}
 		writeConf(cl)
+		return true
 	}
-	return true
+	return false
 }
 
 /**
@@ -96,7 +106,7 @@ func DeleteClient(id string) bool {
  * @return bool
  */
 func writeConf(data []byte) bool {
-	file, err := os.OpenFile(DbFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	file, err := os.OpenFile(Db.Name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Printf("File open error:", err)
 		return false
@@ -134,7 +144,7 @@ func checkClient(id string) (Config, bool) {
  * @param []string data - [host, port]
  * @return string - md5 hash
  */
-func generateId(data []string) string {
+func GenerateId(data []string) string {
 	hash := md5.New()
 	hash.Write([]byte(strings.Join(data, ":")))
 	return hex.EncodeToString(hash.Sum(nil))

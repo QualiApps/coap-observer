@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"encoding/json"
 	"github.com/julienschmidt/httprouter"
 	"github.com/qualiapps/observer/models"
 )
@@ -11,14 +12,14 @@ import (
 type (
 	// ConfController represents the controller for operating on the Config resource
 	ConfigController struct {
-		ConFile string
+		OnRegister func(c models.Client)
+		OnDelete   func(id string)
 	}
 )
 
-func NewConfigController(conFile string) *ConfigController {
-	return &ConfigController{
-		ConFile: conFile,
-	}
+func NewConfigController(conFile string, reg func(c models.Client), rm func(id string)) *ConfigController {
+	models.Db.Name = conFile
+	return &ConfigController{reg, rm}
 }
 
 /**
@@ -26,7 +27,6 @@ func NewConfigController(conFile string) *ConfigController {
  * @return json
  */
 func (c *ConfigController) GetClients(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	models.DbFile = c.ConFile
 	clients := models.GetAllClients()
 
 	// Write content-type, statuscode, payload
@@ -40,7 +40,12 @@ func (c *ConfigController) GetClients(w http.ResponseWriter, r *http.Request, _ 
  * Adds a new client
  */
 func (c *ConfigController) AddClient(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	response, _ := models.AddClient(r.Body)
+	response, ok := models.AddClient(r.Body)
+	if ok {
+		var client models.Client
+		json.Unmarshal(response, &client)
+		c.Register(client)
+	}
 
 	// Write content-type, statuscode, payload
 	w.Header().Set("Content-Type", "application/json")
@@ -53,9 +58,19 @@ func (c *ConfigController) AddClient(w http.ResponseWriter, r *http.Request, _ h
  */
 func (c *ConfigController) RemoveClient(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	status := 400
-	res := models.DeleteClient(p.ByName("id"))
+	id := p.ByName("id")
+	res := models.DeleteClient(id)
 	if res {
 		status = 200
+		c.Delete(id)
 	}
 	w.WriteHeader(status)
+}
+
+func (c *ConfigController) Register(res models.Client) {
+	c.OnRegister(res)
+}
+
+func (c *ConfigController) Delete(id string) {
+	c.OnDelete(id)
 }
