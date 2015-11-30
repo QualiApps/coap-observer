@@ -30,7 +30,22 @@ type (
 	}
 )
 
-var RegRes []Registered
+var (
+	RegRes     []Registered
+	ValidToken = make(map[string]bool)
+)
+
+func IsValidToken(token []byte) bool {
+	valid := false
+	if _, ok := ValidToken[string(token)]; ok {
+		valid = true
+	}
+	return valid
+}
+
+func RemoveToken(token []byte) {
+	delete(ValidToken, string(token))
+}
 
 func GetRegClientByKey(key string) (int, *Registered) {
 	for id, reg := range RegRes {
@@ -50,6 +65,7 @@ func Deregister(l *net.UDPConn, addr *net.UDPAddr, req *coap.Message) {
 	if err != nil {
 		log.Fatalf("DEREGISTER ERROR: %#v\n", err)
 	}
+	RemoveToken(req.Token)
 }
 
 func DeregisterDevices(l *net.UDPConn, regResources []Registered) {
@@ -103,6 +119,7 @@ func Register(l *net.UDPConn, device client.Client) bool {
 					log.Printf("Error sending request: %v", err)
 				}
 				RegDev.Req = append(RegDev.Req, req)
+				ValidToken[string(req.Token)] = true
 			}
 		}
 		if len(RegDev.Req) > 0 {

@@ -16,21 +16,24 @@ func ProcessResponse(l *net.UDPConn, response Response) {
 	err := rv.UnmarshalBinary(response.Data)
 
 	if err == nil {
-		// Send ACK
-		if rv.IsConfirmable() {
-			m := coap.Message{
-				Type:      coap.Acknowledgement,
-				Code:      0,
-				MessageID: rv.MessageID,
+		if rv.IsObservable() && IsValidToken(rv.Token) {
+			// Send ACK
+			if rv.IsConfirmable() {
+				m := coap.Message{
+					Type:      coap.Acknowledgement,
+					Code:      0,
+					MessageID: rv.MessageID,
+				}
+				err := coap.Transmit(l, response.FromAddr, m)
+				if err != nil {
+					fmt.Println(err)
+				}
+
 			}
-			err := coap.Transmit(l, response.FromAddr, m)
-			if err != nil {
-				fmt.Println(err)
-			}
+			// Send to DB
+			fmt.Printf("------TO DB------------------------------------------------------\n")
 
 		}
-		// Send to DB
-		fmt.Printf("------TO DB------------------------------------------------------\n")
 	}
 
 }
