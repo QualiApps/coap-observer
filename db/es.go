@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	dIndex = "index" //default index name
-	dType  = "type"  // default type name
+	DIndex = "index" //default index name
+	DType  = "type"  // default type name
 )
 
 type ES struct {
@@ -52,7 +52,7 @@ func (e *ES) GetUrl(h, p string) string {
 
 func (e *ES) GetType() string {
 	if e.isEmpty(e.Type) {
-		e.Type = dType
+		e.Type = DType
 	}
 	return e.Type
 }
@@ -63,7 +63,7 @@ func (e *ES) SetType(t string) {
 
 func (e *ES) GetIndex() string {
 	if e.isEmpty(e.Index) {
-		e.Index = dIndex
+		e.Index = DIndex
 	}
 	return e.Index
 }
@@ -90,11 +90,11 @@ func (e *ES) Get(id string) []byte {
 	return data
 }
 
-func (e *ES) Post(data string) bool {
+func (e *ES) Post(data string) (string, bool) {
 	return e.send(data)
 }
 
-func (e *ES) Put(data string) bool {
+func (e *ES) Put(data string) (string, bool) {
 	return e.send(data)
 }
 
@@ -106,7 +106,7 @@ func (e ES) Remove(id string) []byte {
 }
 
 func (e *ES) CreateIndex(i string) error {
-	return e.CheckIndex(i)
+	return e.checkIndex(i)
 }
 
 func (e *ES) DeleteIndex(i string) bool {
@@ -119,7 +119,7 @@ func (e *ES) DeleteIndex(i string) bool {
 	return isDelete
 }
 
-func (e *ES) CheckIndex(i string) error {
+func (e *ES) checkIndex(i string) error {
 	// Use the IndexExists service to check if a specified index exists.
 	exist, err := e.Conn.IndexExists(i).Do()
 	if err != nil {
@@ -142,18 +142,18 @@ func (e *ES) CheckIndex(i string) error {
 	return nil
 }
 
-func (e *ES) send(data string) bool {
-	_, err := e.Conn.Index().
+func (e *ES) send(data string) (string, bool) {
+	res, err := e.Conn.Index().
 		Index(e.GetIndex()).
 		Type(e.GetType()).
 		BodyString(data).
 		Do()
 	if err != nil {
 		log.Printf("POST ERROR: %#v\n", err)
-		return false
+		return "", false
 	}
 
-	return true
+	return res.Id, true
 }
 
 func (e *ES) isEmpty(s string) bool {

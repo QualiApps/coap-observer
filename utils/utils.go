@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -27,4 +28,13 @@ func GenMessageID() uint16 {
 		CurMessageID++
 	}
 	return CurMessageID
+}
+
+func IsEmpty(s string) bool {
+	empty := false
+	if len(strings.TrimSpace(s)) == 0 {
+		empty = true
+	}
+
+	return empty
 }

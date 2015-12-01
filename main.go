@@ -1,7 +1,9 @@
 package main
 
 import (
+	"github.com/qualiapps/observer/db"
 	client "github.com/qualiapps/observer/models"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -17,6 +19,11 @@ func main() {
 		listener   = make(chan *net.UDPConn)
 		exit       = make(chan os.Signal, 1)
 	)
+	// Init DB
+	es, err := db.GetClient()
+	if err != nil {
+		log.Fatalf("Can't init DB: %#v\n", err)
+	}
 
 	connString := HostPort{Net, ":"}
 	signal.Notify(exit, os.Interrupt)
@@ -41,7 +48,7 @@ func main() {
 				RegRes = append(RegRes[:id], RegRes[id+1:]...)
 			}
 		case response := <-handler:
-			go ProcessResponse(l, response)
+			go ProcessResponse(l, es, response)
 		case <-exit:
 			go func() {
 				DeregisterDevices(l, RegRes)

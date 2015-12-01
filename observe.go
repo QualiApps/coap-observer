@@ -58,7 +58,7 @@ func GetRegClientByKey(key string) (int, *Registered) {
 }
 
 func Deregister(l *net.UDPConn, addr *net.UDPAddr, req *coap.Message) {
-	fmt.Printf("\nDEREGISTER - Resource: %s, Host: %s, Port: %s\n", req.Option(coap.URIPath), addr.IP, addr.Port)
+	fmt.Printf("\nDEREGISTER - Resource: %s, Host: %s, Port: %d", req.Option(coap.URIPath), addr.IP, addr.Port)
 
 	req.SetOption(coap.Observe, 1)
 	err := coap.Transmit(l, addr, *req)
