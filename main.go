@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/qualiapps/observer/db"
 	client "github.com/qualiapps/observer/models"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -12,18 +11,15 @@ import (
 
 func main() {
 	var (
-		conf       = make(chan client.Config)
-		register   = make(chan client.Client)
-		deregister = make(chan string)
-		handler    = make(chan Response)
-		listener   = make(chan *net.UDPConn)
-		exit       = make(chan os.Signal, 1)
+		conf       = make(chan client.Config) // bootstrap channel
+		register   = make(chan client.Client) // register event
+		deregister = make(chan string)        // delete event
+		handler    = make(chan Response)      // response event
+		listener   = make(chan *net.UDPConn)  // entry point, to listen notifications
+		exit       = make(chan os.Signal, 1)  // terminate
 	)
 	// Init DB
-	es, err := db.GetClient()
-	if err != nil {
-		log.Fatalf("Can't init DB: %#v\n", err)
-	}
+	es := db.GetClient()
 
 	connString := HostPort{Net, ":"}
 	signal.Notify(exit, os.Interrupt)
@@ -33,12 +29,15 @@ func main() {
 	go ServCoap(listener, handler, connString)
 
 	l := <-listener
+	// Bootstrap
 	RegisterDevices(l, <-conf)
 
 	for {
 		select {
+		// register new device
 		case device := <-register:
 			Register(l, device)
+		// remove device
 		case keyID := <-deregister:
 			id, client := GetRegClientByKey(keyID)
 			if client != nil {
@@ -47,8 +46,10 @@ func main() {
 				}
 				RegRes = append(RegRes[:id], RegRes[id+1:]...)
 			}
+		// on response
 		case response := <-handler:
 			go ProcessResponse(l, es, response)
+		// terminate app
 		case <-exit:
 			go func() {
 				DeregisterDevices(l, RegRes)

@@ -140,3 +140,12 @@ func RegisterDevices(l *net.UDPConn, conf client.Config) {
 	}
 
 }
+
+func SendAck(l *net.UDPConn, from *net.UDPAddr, mid uint16) error {
+	m := coap.Message{
+		Type:      coap.Acknowledgement,
+		Code:      0,
+		MessageID: mid,
+	}
+	return coap.Transmit(l, from, m)
+}
