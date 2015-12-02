@@ -45,7 +45,6 @@ func (o *Observe) RegisterDevices(conf client.Config) {
 	for _, device := range conf {
 		o.Register(device)
 	}
-
 }
 
 func (o *Observe) Register(device client.Client) bool {

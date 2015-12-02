@@ -34,7 +34,7 @@ func NewES(host, port string) (*ES, error) {
 		return nil, err
 	}
 
-	_, _, err = es.Conn.Ping().Do()
+	_, _, err = es.Conn.Ping().URL(url).Do()
 	if err != nil {
 		return nil, err
 	}
