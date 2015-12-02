@@ -10,6 +10,7 @@ import (
 var (
 	DIndex = "index" //default index name
 	DType  = "type"  // default type name
+	Scheme = "http"
 )
 
 type ES struct {
@@ -43,7 +44,7 @@ func NewES(host, port string) (*ES, error) {
 
 func (e *ES) GetUrl(h, p string) string {
 	u := &url.URL{
-		Scheme: "http",
+		Scheme: Scheme,
 		Host:   strings.Join([]string{h, p}, ":"),
 	}
 

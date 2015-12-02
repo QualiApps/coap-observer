@@ -24,7 +24,6 @@ func ProcessResponse(l *net.UDPConn, dbClient db.DBClient, response Response) {
 	// parse to CoAP struct
 	rv := coap.Message{}
 	err := rv.UnmarshalBinary(response.Data)
-
 	if err == nil {
 		if rv.IsObservable() && IsValidToken(rv.Token) {
 			// Send ACK
@@ -42,7 +41,6 @@ func ProcessResponse(l *net.UDPConn, dbClient db.DBClient, response Response) {
 				if dbClient != nil {
 					dbClient.Processing(data)
 				}
-
 			}
 		}
 	}

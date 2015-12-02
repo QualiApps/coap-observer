@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"github.com/julienschmidt/httprouter"
 	"github.com/qualiapps/observer/controllers"
 	client "github.com/qualiapps/observer/models"
@@ -12,12 +11,6 @@ import (
 )
 
 func ServHttp(confChan chan client.Config, reg chan client.Client, rm chan string) {
-	HttpHost := flag.String("host", "localhost", "Http server address")
-	HttpPort := flag.String("port", "4000", "Http server port")
-	ConFile := flag.String("conf", "clients.db", "Config file")
-
-	flag.Parse()
-
 	// init router
 	router := httprouter.New()
 

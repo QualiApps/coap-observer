@@ -27,6 +27,7 @@ func (e *ES) Processing(payload string) {
 		if _, ok := e.Post(payload, ""); !ok {
 			log.Printf("Can't add item %s to DB!\n", payload)
 		}
+
 	}
 
 }
