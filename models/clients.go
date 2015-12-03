@@ -59,7 +59,11 @@ func AddClient(params io.Reader) ([]byte, bool) {
 	// Populate params
 	err = json.NewDecoder(params).Decode(&client)
 	if err != nil {
-		log.Printf("Json Decode error: %#v\n", err)
+		log.Printf("INCOMING DATA: Json Decode error: %#v\n", err)
+		return nil, false
+	}
+
+	if client.Host == "" || client.Port == "" {
 		return nil, false
 	}
 
@@ -78,7 +82,7 @@ func AddClient(params io.Reader) ([]byte, bool) {
 
 	cl, err = json.Marshal(&clients)
 	if err != nil {
-		log.Printf("Json Marshal error: %#v\n", err)
+		log.Printf("ENCODE CLIENTS: Json encode error: %#v\n", err)
 		return nil, false
 	}
 
@@ -86,7 +90,7 @@ func AddClient(params io.Reader) ([]byte, bool) {
 	if writeConf(cl) {
 		ac, err = json.Marshal(client)
 		if err != nil {
-			log.Printf("Json Marshal error: %#v\n", err)
+			log.Printf("ENCODE RESPONSE: Json encode error: %#v\n", err)
 			return nil, false
 		}
 
@@ -106,7 +110,7 @@ func DeleteClient(id string) bool {
 		delete(clients, id)
 		cl, err := json.Marshal(&clients)
 		if err != nil {
-			log.Printf("Json Marshal error:", err)
+			log.Printf("DELETE CLIENT: Json Marshal error:", err)
 			return false
 		}
 		writeConf(cl)
@@ -123,13 +127,13 @@ func DeleteClient(id string) bool {
 func writeConf(data []byte) bool {
 	file, err := os.OpenFile(Db.Name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Printf("File open error:", err)
+		log.Printf("DB Connect error:", err)
 		return false
 	}
 	defer file.Close()
 
 	if _, err = file.Write(data); err != nil {
-		log.Printf("Write to file error:", err)
+		log.Printf("Write to DB error:", err)
 		return false
 	}
 	return true

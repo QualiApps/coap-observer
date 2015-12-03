@@ -64,7 +64,7 @@ func (o *Observe) Register(device client.Client) bool {
 	}
 	coreLinks := resources.(string)
 	if coreLinks == "" {
-		registered = false
+		return false
 	}
 	if endPoints, ok := core.Parse(coreLinks); ok {
 		req := coap.Message{
@@ -90,6 +90,10 @@ func (o *Observe) Register(device client.Client) bool {
 
 				RegDev.Req = append(RegDev.Req, req)
 				ValidTokens[string(req.Token)] = true
+				log.Printf("REGISTER - Resource: %s, Host: %s, Port: %s\n",
+					req.Option(coap.URIPath),
+					device.Host,
+					device.Port)
 			}
 		}
 		if len(RegDev.Req) > 0 {

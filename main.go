@@ -12,14 +12,12 @@ import (
 )
 
 var (
-	HttpHost     *string
 	HttpPort     *string
 	ListenerPort *string
 	ConFile      *string
 )
 
 func init() {
-	HttpHost = flag.String("host", "localhost", "Conf server address")
 	HttpPort = flag.String("port", "4000", "Conf server port")
 	ListenerPort = flag.String("lport", "56083", "Lstener port")
 	ConFile = flag.String("conf", "clients.db", "Config file")
@@ -40,20 +38,25 @@ func main() {
 	es := db.GetClient()
 
 	connString := HostPort{Net, ":" + *ListenerPort}
-	signal.Notify(exit, os.Interrupt)
-	signal.Notify(exit, syscall.SIGTERM)
+	signal.Notify(exit,
+		os.Interrupt,
+		syscall.SIGKILL,
+		syscall.SIGTERM,
+		syscall.SIGINT,
+	)
 
 	go ServHttp(conf, register, deregister)
 	go ServCoap(listener, handler, connString)
 
 	// Create observe instance
 	observe := NewObserve(<-listener)
-	// Bootstrap
-	observe.RegisterDevices(<-conf)
 
 	fmt.Printf("Observe Service was started...\n")
-	fmt.Printf("Config serv Port is %s\n", *HttpPort)
-	fmt.Printf("Listener serv Port is %s\n", *ListenerPort)
+	fmt.Printf("Config serv :%s\n", *HttpPort)
+	fmt.Printf("Listener serv :%s\n", *ListenerPort)
+
+	// Bootstrap
+	observe.RegisterDevices(<-conf)
 
 	for {
 		select {

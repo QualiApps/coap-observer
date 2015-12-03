@@ -43,7 +43,7 @@ func ServHttp(confChan chan client.Config, reg chan client.Client, rm chan strin
 
 	log.Fatal(
 		http.ListenAndServe(
-			strings.Join([]string{*HttpHost, *HttpPort}, ":"),
+			strings.Join([]string{"", *HttpPort}, ":"),
 			router,
 		),
 	)
