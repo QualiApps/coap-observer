@@ -43,7 +43,7 @@ func ProcessResponse(l *net.UDPConn, dbClient db.DBClient, response Response) {
 					}
 				}
 			} else {
-				go RemoveUnObservable(&rv, response.FromAddr)
+				RemoveUnObservable(&rv, response.FromAddr)
 			}
 		}
 	}
