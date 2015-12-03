@@ -1,2 +1,3 @@
-# coap-observer
-Coap client (observe), Http server (init coap devices)
+# CoAP Observer
+
+Observing Resources in the Constrained Application Protocol
