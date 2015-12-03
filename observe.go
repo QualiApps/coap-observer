@@ -6,6 +6,7 @@ import (
 	client "github.com/qualiapps/observer/models"
 	"github.com/qualiapps/observer/utils"
 
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -90,10 +91,6 @@ func (o *Observe) Register(device client.Client) bool {
 
 				RegDev.Req = append(RegDev.Req, req)
 				ValidTokens[string(req.Token)] = true
-				log.Printf("REGISTER - Resource: %s, Host: %s, Port: %s\n",
-					req.Option(coap.URIPath),
-					device.Host,
-					device.Port)
 			}
 		}
 		if len(RegDev.Req) > 0 {
@@ -126,6 +123,21 @@ func (o *Observe) DeregisterDevices(regResources []Registered) {
 	}
 }
 
+func RemoveUnObservable(m *coap.Message, from *net.UDPAddr) {
+	RemoveToken(m.Token)
+
+	conn := []string{fmt.Sprint(from.IP), fmt.Sprint(from.Port)}
+	keyID := client.GenerateId(conn)
+	id, client := GetRegClientByKey(keyID)
+	if id >= 0 {
+		for i, reg := range client.Req {
+			if string(reg.Token) == string(m.Token) {
+				client.Req = append(client.Req[:i], client.Req[i+1:]...)
+			}
+		}
+	}
+}
+
 func IsValidToken(token []byte) bool {
 	valid := false
 	if _, ok := ValidTokens[string(token)]; ok {
@@ -141,9 +153,9 @@ func RemoveToken(token []byte) {
 func GetRegClientByKey(key string) (int, *Registered) {
 	for id, reg := range RegRes {
 		if reg.Id == key {
-			return id, &reg
+			return id, &RegRes[id]
 		}
 	}
 
-	return 0, nil
+	return -1, nil
 }

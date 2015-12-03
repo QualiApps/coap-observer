@@ -70,7 +70,9 @@ func main() {
 				for _, req := range client.Req {
 					observe.Deregister(client.RemoteAddr, &req)
 				}
-				RegRes = append(RegRes[:id], RegRes[id+1:]...)
+				if id >= 0 {
+					RegRes = append(RegRes[:id], RegRes[id+1:]...)
+				}
 			}
 		// on response
 		case response := <-handler:

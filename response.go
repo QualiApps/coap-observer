@@ -25,24 +25,26 @@ func ProcessResponse(l *net.UDPConn, dbClient db.DBClient, response Response) {
 	rv := coap.Message{}
 	err := rv.UnmarshalBinary(response.Data)
 	if err == nil {
-		if rv.IsObservable() && IsValidToken(rv.Token) {
-			// Send ACK
-			if rv.IsConfirmable() {
-				err := SendAck(l, response.FromAddr, rv.MessageID)
-				if err != nil {
-					log.Printf("Send ACK ERROR: %#v\n", err)
+		if IsValidToken(rv.Token) {
+			if rv.IsObservable() {
+				// Send ACK
+				if rv.IsConfirmable() {
+					err := SendAck(l, response.FromAddr, rv.MessageID)
+					if err != nil {
+						log.Printf("Send ACK ERROR: %#v\n", err)
+					}
 				}
-
-			}
-			// processing payload
-			data := string(rv.Payload)
-			if !utils.IsEmpty(data) {
-				// Send to DB
-				if dbClient != nil {
-					dbClient.Processing(data)
+				// processing payload
+				data := string(rv.Payload)
+				if !utils.IsEmpty(data) {
+					// Send to DB
+					if dbClient != nil {
+						dbClient.Processing(data)
+					}
 				}
+			} else {
+				go RemoveUnObservable(&rv, response.FromAddr)
 			}
 		}
 	}
-
 }
