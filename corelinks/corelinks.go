@@ -72,16 +72,18 @@ func Parse(links string) ([]*resource, bool) {
 	items := strings.Split(links, ",")
 	for _, part := range items {
 		parts := strings.Split(part, ";")
-		// Add resource url
-		resourceURL := parts[0][1 : len(parts[0])-1]
-		res := NewResource()
-		res.AddLink(resourceURL)
-		if len(parts) > 1 {
-			attribs := parts[1:]
-			parseAttributes(res, attribs)
-		}
+		if parts[0] != "" {
+			// Add resource url
+			resourceURL := parts[0][1 : len(parts[0])-1]
+			res := NewResource()
+			res.AddLink(resourceURL)
+			if len(parts) > 1 {
+				attribs := parts[1:]
+				parseAttributes(res, attribs)
+			}
 
-		resources = append(resources, res)
+			resources = append(resources, res)
+		}
 	}
 	if len(resources) != 0 {
 		ok = true
