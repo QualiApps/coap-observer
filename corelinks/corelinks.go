@@ -18,6 +18,10 @@ type (
 	}
 )
 
+var (
+	WellKnown = "/.well-known/core"
+)
+
 func NewResource() *resource {
 	return new(resource)
 }
@@ -75,14 +79,16 @@ func Parse(links string) ([]*resource, bool) {
 		if parts[0] != "" {
 			// Add resource url
 			resourceURL := parts[0][1 : len(parts[0])-1]
-			res := NewResource()
-			res.AddLink(resourceURL)
-			if len(parts) > 1 {
-				attribs := parts[1:]
-				parseAttributes(res, attribs)
-			}
+			if resourceURL != WellKnown {
+				res := NewResource()
+				res.AddLink(resourceURL)
+				if len(parts) > 1 {
+					attribs := parts[1:]
+					parseAttributes(res, attribs)
+				}
 
-			resources = append(resources, res)
+				resources = append(resources, res)
+			}
 		}
 	}
 	if len(resources) != 0 {
