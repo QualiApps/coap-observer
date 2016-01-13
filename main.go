@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var (
@@ -56,7 +57,7 @@ func main() {
 	fmt.Printf("Listener serv :%s\n", *ListenerPort)
 
 	// Bootstrap
-	observe.RegisterDevices(<-conf)
+	boot := <-conf
 
 	for {
 		select {
@@ -83,7 +84,9 @@ func main() {
 				observe.DeregisterDevices(RegRes)
 				os.Exit(0)
 			}()
-
+		default:
+			time.Sleep(100 * time.Millisecond)
+			observe.RegisterDevices(boot)
 		}
 	}
 }

@@ -66,10 +66,13 @@ func Discover(device client.Client) (interface{}, error) {
 	req.SetPathString(WellKnown)
 
 	conn, err := coap.Dial(Net, strings.Join([]string{device.Host, device.Port}, ":"))
+	defer conn.Close()
+
 	if err != nil {
 		return nil, err
 	}
 
+	time.Sleep(2 * time.Second)
 	rv, err := conn.Send(req)
 	if err != nil {
 		return nil, err

@@ -90,6 +90,7 @@ func (o *Observe) Register(device client.Client) bool {
 				}
 
 				RegDev.Req = append(RegDev.Req, req)
+				log.Printf("REGISTER Resource: %s, Host: %s, Port: %d\n", link, remoteAddr.IP, remoteAddr.Port)
 				ValidTokens[string(req.Token)] = true
 			}
 		}
@@ -105,7 +106,7 @@ func (o *Observe) Register(device client.Client) bool {
 }
 
 func (o *Observe) Deregister(addr *net.UDPAddr, req *coap.Message) {
-	log.Printf("DEREGISTER - Resource: %s, Host: %s, Port: %d\n", req.Option(coap.URIPath), addr.IP, addr.Port)
+	log.Printf("DEREGISTER - Resource: %s, Host: %s, Port: %d\n", req.PathString(), addr.IP, addr.Port)
 
 	req.SetOption(coap.Observe, 1)
 	err := coap.Transmit(o.Conn, addr, *req)
