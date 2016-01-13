@@ -28,6 +28,7 @@ func NewES(host, port string) (*ES, error) {
 
 	var err error
 	es.Conn, err = elastic.NewClient(
+		elastic.SetSniff(false),
 		elastic.SetURL(url),
 	)
 	if err != nil {
